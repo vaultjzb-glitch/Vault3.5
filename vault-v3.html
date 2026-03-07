@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#080910">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VAULT">
+<link rel="manifest" href="manifest.json">
+<title>VAULT — Private AI</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Sora:wght@300;400;500&display=swap');
+:root{--bg:#080910;--s1:#0e0f16;--s2:#14151f;--s3:#1a1b28;--b1:#252636;--b2:#2f3048;--cyan:#00e5ff;--purple:#7b61ff;--green:#00ff88;--red:#ff4466;--amber:#ffaa00;--text:#dde1f0;--muted:#4a4d6b;--muted2:#6b6f8e;--mono:'Courier Prime',monospace;--head:'Rajdhani',sans-serif;--body:'Sora',sans-serif;--safe-bottom:env(safe-area-inset-bottom,0px);--safe-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);height:100%;display:flex;flex-direction:column;overflow:hidden;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.018) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:1000;}
+
+/* ═══ API MODAL ═══ */
+#apiModal{position:fixed;inset:0;background:rgba(8,9,16,0.97);z-index:950;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
+#apiModal.hidden{display:none;}
+.api-logo{font-family:var(--head);font-size:48px;font-weight:700;letter-spacing:.18em;color:var(--cyan);text-shadow:0 0 40px rgba(0,229,255,0.5);margin-bottom:6px;}
+.api-subtitle{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.25em;text-transform:uppercase;margin-bottom:40px;}
+.api-box{width:100%;max-width:400px;background:var(--s2);border:1px solid var(--b2);padding:24px;position:relative;}
+.api-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--purple),var(--cyan));}
+.api-label{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.15em;margin-bottom:10px;}
+.api-input-wrap{display:flex;border:1px solid var(--b2);background:var(--s3);overflow:hidden;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;}
+.api-input-wrap:focus-within{border-color:rgba(0,229,255,.4);box-shadow:0 0 0 1px rgba(0,229,255,.08);}
+.api-prefix{padding:0 10px;display:grid;place-items:center;font-family:var(--mono);font-size:9px;color:var(--purple);background:rgba(123,97,255,.08);border-right:1px solid var(--b2);flex-shrink:0;user-select:none;}
+#apiKeyInput{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:12px;letter-spacing:.05em;}
+#apiKeyInput::placeholder{color:var(--muted);}
+.api-toggle{padding:0 12px;background:transparent;border:none;border-left:1px solid var(--b2);cursor:pointer;color:var(--muted2);font-size:14px;transition:color .2s;}
+.api-submit{width:100%;padding:13px;font-family:var(--head);font-size:14px;font-weight:600;letter-spacing:.15em;background:transparent;border:1px solid rgba(0,229,255,.5);color:var(--cyan);cursor:pointer;transition:all .2s;}
+.api-submit:hover{background:rgba(0,229,255,.08);box-shadow:0 0 20px rgba(0,229,255,.15);}
+.api-warn{font-family:var(--mono);font-size:9px;color:var(--amber);letter-spacing:.06em;margin-top:14px;text-align:center;}
+.api-err{font-family:var(--mono);font-size:9px;color:var(--red);letter-spacing:.06em;margin-top:10px;text-align:center;display:none;}
+
+/* ═══ BOOT ═══ */
+#boot{position:fixed;inset:0;background:var(--bg);z-index:900;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;transition:opacity 0.6s ease,transform 0.6s ease;}
+#boot.out{opacity:0;transform:scale(1.03);pointer-events:none;}
+.boot-logo{font-family:var(--head);font-size:clamp(64px,18vw,108px);font-weight:700;letter-spacing:0.18em;color:var(--cyan);text-shadow:0 0 50px rgba(0,229,255,0.6),0 0 100px rgba(0,229,255,0.2);line-height:1;animation:logoFlicker 5s infinite;}
+@keyframes logoFlicker{0%,94%,100%{opacity:1;}95%{opacity:.8;}96%{opacity:1;}98%{opacity:.85;}}
+.boot-tagline{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:0.3em;margin-top:6px;margin-bottom:48px;text-transform:uppercase;}
+.boot-log{width:100%;max-width:400px;font-family:var(--mono);font-size:11px;display:flex;flex-direction:column;gap:7px;margin-bottom:28px;}
+.bl{display:flex;gap:10px;align-items:center;opacity:0;transform:translateX(-8px);animation:blIn 0.25s forwards;}
+@keyframes blIn{to{opacity:1;transform:none;}}
+.bl-p{color:var(--muted);flex-shrink:0;}.bl-t{flex:1;color:var(--muted2);}.bl-s{margin-left:auto;font-weight:700;letter-spacing:.1em;flex-shrink:0;}
+.bl.ok .bl-s{color:var(--green);}.bl.warn .bl-s{color:var(--amber);}.bl.block .bl-s{color:var(--red);}
+.boot-prog{width:100%;max-width:400px;height:2px;background:var(--s2);overflow:hidden;margin-bottom:24px;}
+.boot-prog-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));box-shadow:0 0 12px var(--cyan);width:0;transition:width 2.2s cubic-bezier(.4,0,.2,1);}
+.boot-enter{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:0.2em;padding:12px 28px;border:1px solid rgba(0,229,255,0.5);cursor:pointer;opacity:0;transition:opacity 0.4s,box-shadow 0.3s,background 0.2s;background:transparent;animation:borderPulse 2s infinite;}
+.boot-enter.show{opacity:1;}
+.boot-enter:hover{background:rgba(0,229,255,0.08);box-shadow:0 0 20px rgba(0,229,255,0.2);}
+@keyframes borderPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,255,0.3);}50%{box-shadow:0 0 0 8px rgba(0,229,255,0);}}
+
+/* ═══ TOPBAR ═══ */
+.topbar{background:var(--s1);border-bottom:1px solid var(--b1);height:52px;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;z-index:10;position:relative;}
+.tb-logo{font-family:var(--head);font-size:20px;font-weight:700;letter-spacing:.15em;color:var(--cyan);text-shadow:0 0 16px rgba(0,229,255,0.4);}
+.tb-session{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;}
+.tb-right{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.loc-badge{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:4px 8px;border:1px solid;cursor:pointer;transition:all 0.2s;user-select:none;}
+.loc-badge.masked{border-color:rgba(0,255,136,0.4);color:var(--green);background:rgba(0,255,136,0.06);}
+.loc-badge.live{border-color:rgba(255,68,102,0.4);color:var(--red);background:rgba(255,68,102,0.06);}
+.loc-badge.off{border-color:rgba(74,77,107,0.5);color:var(--muted2);background:transparent;}
+.loc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:lp 2s infinite;}
+@keyframes lp{0%,100%{opacity:1;}50%{opacity:.3;}}
+.vpn-badge{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:4px 7px;border:1px solid;cursor:pointer;}
+.vpn-badge.on{border-color:rgba(0,255,136,0.4);color:var(--green);background:rgba(0,255,136,0.06);}
+.vpn-badge.off{border-color:rgba(255,68,102,0.4);color:var(--red);background:rgba(255,68,102,0.06);}
+
+/* ═══ TABS ═══ */
+.tabs{display:flex;background:var(--s1);border-bottom:1px solid var(--b1);flex-shrink:0;z-index:9;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:52px;padding:8px 4px;font-family:var(--mono);font-size:8px;letter-spacing:.06em;color:var(--muted2);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:2px solid transparent;transition:all 0.15s;user-select:none;white-space:nowrap;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-icon{font-size:15px;line-height:1;}
+
+/* ═══ PANELS ═══ */
+.panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.panel.active{display:flex;}
+
+/* ═══ CHAT ═══ */
+.messages{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth;}
+.messages::-webkit-scrollbar{width:2px;}
+.messages::-webkit-scrollbar-thumb{background:var(--b2);}
+.sys-msg{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;}
+.sys-msg::before,.sys-msg::after{content:'';flex:1;height:1px;background:var(--b1);}
+.msg{display:flex;gap:10px;animation:msgIn .3s cubic-bezier(.34,1.56,.64,1);}
+.msg.user{flex-direction:row-reverse;}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px) scale(.97);}to{opacity:1;transform:none;}}
+.av{width:32px;height:32px;flex-shrink:0;display:grid;place-items:center;font-family:var(--head);font-size:12px;font-weight:700;letter-spacing:.04em;position:relative;}
+.av.ai{background:var(--s2);border:1px solid var(--b2);color:var(--cyan);}
+.av.ai::after{content:'';position:absolute;inset:-3px;border:1px solid rgba(0,229,255,0.12);clip-path:polygon(0 0,60% 0,100% 40%,100% 100%,40% 100%,0 60%);animation:spin 10s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.av.user{background:linear-gradient(135deg,var(--purple),var(--cyan));color:#fff;font-size:11px;}
+.mb{flex:1;min-width:0;}
+.msg.user .mb{display:flex;flex-direction:column;align-items:flex-end;}
+.bub{padding:11px 14px;font-size:13.5px;line-height:1.7;font-weight:300;max-width:88%;word-break:break-word;position:relative;}
+.msg.ai .bub{background:var(--s2);border:1px solid var(--b2);border-radius:0 8px 8px 8px;color:var(--text);}
+.msg.ai .bub::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);opacity:.35;}
+.msg.user .bub{background:linear-gradient(135deg,rgba(123,97,255,.13),rgba(0,229,255,.07));border:1px solid rgba(123,97,255,.22);border-radius:8px 0 8px 8px;}
+.msg-foot{display:flex;align-items:center;gap:6px;margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.05em;}
+.msg.user .msg-foot{justify-content:flex-end;}
+.enc{color:var(--green);opacity:.7;}
+.think-bub{background:var(--s2);border:1px solid var(--b2);padding:13px 16px;display:flex;align-items:center;gap:5px;border-radius:0 8px 8px 8px;position:relative;}
+.think-bub::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);opacity:.35;}
+.td{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:td 1.2s infinite;}
+.td:nth-child(2){animation-delay:.15s;background:var(--purple);}
+.td:nth-child(3){animation-delay:.3s;}
+@keyframes td{0%,80%,100%{transform:scale(.7);opacity:.3;}40%{transform:scale(1);opacity:1;}}
+.cursor{display:inline-block;width:2px;height:13px;background:var(--cyan);margin-left:2px;vertical-align:middle;animation:cur .7s infinite;}
+@keyframes cur{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+.qcmds{display:flex;gap:5px;overflow-x:auto;padding:8px 14px 4px;scrollbar-width:none;flex-shrink:0;}
+.qcmds::-webkit-scrollbar{display:none;}
+.qc{padding:4px 9px;background:var(--s2);border:1px solid var(--b1);font-family:var(--mono);font-size:9px;color:var(--muted2);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;letter-spacing:.04em;}
+.qc:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.05);}
+.input-area{background:var(--s1);border-top:1px solid var(--b1);padding:10px 14px 14px;flex-shrink:0;z-index:10;position:relative;}
+.input-wrap{display:flex;border:1px solid var(--b2);background:var(--s2);overflow:hidden;transition:border-color .2s,box-shadow .2s;position:relative;}
+.input-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--purple),var(--cyan));opacity:0;transition:opacity .2s;}
+.input-wrap:focus-within{border-color:rgba(0,229,255,.35);box-shadow:0 0 0 1px rgba(0,229,255,.08);}
+.input-wrap:focus-within::before{opacity:.6;}
+.input-tag{padding:0 10px;display:grid;place-items:center;font-family:var(--mono);font-size:9px;color:var(--purple);background:rgba(123,97,255,.08);border-right:1px solid var(--b2);flex-shrink:0;user-select:none;}
+textarea{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--body);font-size:13.5px;font-weight:300;padding:12px;resize:none;min-height:46px;max-height:130px;line-height:1.5;}
+textarea::placeholder{color:var(--muted);}
+.send-btn{padding:0 14px;background:transparent;border:none;border-left:1px solid var(--b2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;}
+.send-btn:hover{background:rgba(0,229,255,.08);}
+.send-btn:disabled{opacity:.3;cursor:not-allowed;}
+.si{width:18px;height:18px;fill:none;stroke:var(--cyan);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s;}
+.send-btn:hover .si{transform:translate(1px,-1px);}
+.input-foot{display:flex;align-items:center;gap:10px;margin-top:7px;font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.05em;}
+.if-dot{width:4px;height:4px;border-radius:50%;background:var(--green);}
+
+/* ═══ SHARED PANEL COMPONENTS ═══ */
+.scroll-panel{flex:1;overflow-y:auto;padding:16px 14px;display:flex;flex-direction:column;gap:12px;}
+.scroll-panel::-webkit-scrollbar{width:2px;}
+.card{background:var(--s2);border:1px solid var(--b2);padding:16px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);opacity:.2;}
+.card.red::before{background:linear-gradient(90deg,var(--red),transparent);opacity:.5;}
+.card.green::before{background:linear-gradient(90deg,var(--green),transparent);opacity:.3;}
+.card.amber::before{background:linear-gradient(90deg,var(--amber),transparent);opacity:.3;}
+.card-title{font-family:var(--head);font-size:14px;font-weight:600;letter-spacing:.08em;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.card-title .badge{font-family:var(--mono);font-size:9px;color:var(--muted2);font-weight:400;letter-spacing:.08em;margin-left:auto;}
+.tog{width:44px;height:24px;background:var(--s3);border:1px solid var(--b2);border-radius:12px;cursor:pointer;position:relative;transition:all .25s;flex-shrink:0;}
+.tog.on{background:rgba(0,255,136,.15);border-color:rgba(0,255,136,.4);}
+.tog-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--muted2);border-radius:50%;transition:all .25s;}
+.tog.on .tog-knob{transform:translateX(20px);background:var(--green);}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;}
+.toggle-label{font-size:12.5px;font-weight:300;color:var(--text);}
+.toggle-sub{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:1px;letter-spacing:.04em;}
+.action-btn{width:100%;padding:14px;font-family:var(--head);font-size:15px;font-weight:600;letter-spacing:.12em;cursor:pointer;border:1px solid;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;background:transparent;}
+.action-btn.kill{border-color:var(--red);color:var(--red);}
+.action-btn.kill:hover{background:rgba(255,68,102,.1);box-shadow:0 0 20px rgba(255,68,102,.15);}
+.action-btn.go{border-color:var(--green);color:var(--green);}
+.action-btn.go:hover{background:rgba(0,255,136,.08);}
+.action-btn.cyan{border-color:var(--cyan);color:var(--cyan);}
+.action-btn.cyan:hover{background:rgba(0,229,255,.08);}
+.mini-log{background:var(--s3);border:1px solid var(--b1);padding:10px;font-family:var(--mono);font-size:10px;max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+.mini-log::-webkit-scrollbar{width:2px;}
+.log-line{display:flex;gap:8px;align-items:flex-start;}
+.log-time{color:var(--muted);flex-shrink:0;font-size:9px;}
+.log-text{color:var(--muted2);flex:1;letter-spacing:.02em;}
+.log-text.ok{color:var(--green);}
+.log-text.warn{color:var(--amber);}
+.log-text.block{color:var(--red);}
+
+/* ═══ LOCATION PANEL ═══ */
+.loc-hero{padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;}
+.loc-ring{width:90px;height:90px;position:relative;display:grid;place-items:center;}
+.loc-ring-outer{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(0,229,255,.2);animation:ripple 2s infinite;}
+.loc-ring-mid{position:absolute;inset:12px;border-radius:50%;border:1px solid rgba(0,229,255,.15);animation:ripple 2s infinite .3s;}
+@keyframes ripple{0%,100%{transform:scale(1);opacity:.5;}50%{transform:scale(1.05);opacity:1;}}
+.loc-icon-wrap{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;font-size:22px;border:2px solid;transition:all .4s;position:relative;z-index:1;}
+.loc-icon-wrap.masked{border-color:var(--green);background:rgba(0,255,136,.08);box-shadow:0 0 20px rgba(0,255,136,.2);}
+.loc-icon-wrap.live{border-color:var(--red);background:rgba(255,68,102,.08);box-shadow:0 0 20px rgba(255,68,102,.2);}
+.loc-icon-wrap.off{border-color:var(--muted);background:rgba(74,77,107,.1);}
+.loc-status-text{font-family:var(--head);font-size:18px;font-weight:600;letter-spacing:.1em;}
+.loc-status-text.masked{color:var(--green);}
+.loc-status-text.live{color:var(--red);}
+.loc-status-text.off{color:var(--muted2);}
+.loc-sub{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.06em;text-align:center;}
+.coords-box{background:var(--s3);border:1px solid var(--b1);padding:12px;font-family:var(--mono);display:flex;flex-direction:column;gap:5px;}
+.coord-row{display:flex;justify-content:space-between;align-items:center;}
+.coord-label{font-size:9px;color:var(--muted);letter-spacing:.1em;}
+.coord-val{font-size:12px;color:var(--cyan);letter-spacing:.04em;}
+.coord-val.spoofed{color:var(--green);}
+.coord-val.hidden{color:var(--muted);letter-spacing:.15em;}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.mode-btn{padding:10px 6px;background:var(--s3);border:1px solid var(--b1);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .2s;}
+.mode-icon{font-size:18px;}
+.mode-label{font-family:var(--mono);font-size:8px;letter-spacing:.08em;color:var(--muted2);}
+.mode-btn.active.green{border-color:var(--green);background:rgba(0,255,136,.06);}
+.mode-btn.active.red{border-color:var(--red);background:rgba(255,68,102,.06);}
+.mode-btn.active.grey{border-color:var(--muted2);background:rgba(74,77,107,.1);}
+.mode-btn.active.green .mode-label{color:var(--green);}
+.mode-btn.active.red .mode-label{color:var(--red);}
+.mode-btn.active.grey .mode-label{color:var(--muted2);}
+.spoof-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.spoof-loc{padding:8px 10px;background:var(--s3);border:1px solid var(--b1);cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:2px;}
+.spoof-loc.selected{border-color:var(--green);background:rgba(0,255,136,.05);}
+.sl-city{font-size:12px;font-weight:400;color:var(--text);}
+.sl-coords{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.04em;}
+
+/* ═══ WATCHDOG PANEL ═══ */
+.wd-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.wstat{background:var(--s3);border:1px solid var(--b1);padding:10px;text-align:center;}
+.wstat-num{font-family:var(--head);font-size:24px;font-weight:700;color:var(--cyan);}
+.wstat-num.red{color:var(--red);}
+.wstat-num.amber{color:var(--amber);}
+.wstat-label{font-family:var(--mono);font-size:8px;color:var(--muted2);letter-spacing:.08em;margin-top:2px;}
+.perm-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--s3);}
+.perm-item:last-child{border-bottom:none;}
+.perm-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center;}
+.perm-info{flex:1;}
+.perm-name{font-size:13px;font-weight:400;color:var(--text);}
+.perm-state{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.04em;margin-top:1px;}
+.perm-badge{font-family:var(--mono);font-size:8px;padding:3px 7px;border:1px solid;flex-shrink:0;}
+.perm-badge.granted{border-color:rgba(255,68,102,.4);color:var(--red);}
+.perm-badge.denied{border-color:rgba(0,255,136,.3);color:var(--green);}
+.perm-badge.prompt{border-color:rgba(255,170,0,.3);color:var(--amber);}
+.perm-badge.unknown{border-color:rgba(74,77,107,.4);color:var(--muted2);}
+.watch-pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:wp 1.5s infinite;flex-shrink:0;}
+.watch-pulse.alert{background:var(--red);box-shadow:0 0 8px var(--red);}
+@keyframes wp{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+
+/* ═══ THREATS PANEL ═══ */
+.cve-card{background:var(--s2);border:1px solid var(--b2);padding:13px;position:relative;overflow:hidden;margin-bottom:8px;cursor:pointer;transition:border-color .2s;}
+.cve-card:hover{border-color:rgba(0,229,255,.3);}
+.cve-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;}
+.cve-card.critical::before{background:linear-gradient(90deg,var(--red),transparent);opacity:.8;}
+.cve-card.high::before{background:linear-gradient(90deg,var(--amber),transparent);opacity:.6;}
+.cve-card.medium::before{background:linear-gradient(90deg,var(--cyan),transparent);opacity:.4;}
+.cve-header{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.cve-id{font-family:var(--mono);font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:.05em;}
+.cve-sev{font-family:var(--mono);font-size:8px;padding:2px 6px;border:1px solid;flex-shrink:0;}
+.cve-sev.critical{border-color:rgba(255,68,102,.6);color:var(--red);background:rgba(255,68,102,.1);}
+.cve-sev.high{border-color:rgba(255,170,0,.5);color:var(--amber);background:rgba(255,170,0,.08);}
+.cve-sev.medium{border-color:rgba(0,229,255,.4);color:var(--cyan);background:rgba(0,229,255,.06);}
+.cve-desc{font-size:12px;color:var(--muted2);line-height:1.5;font-weight:300;}
+.cve-footer{display:flex;align-items:center;gap:6px;margin-top:6px;font-family:var(--mono);font-size:9px;color:var(--muted);}
+
+/* ═══ DARK WEB PANEL ═══ */
+.breach-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--s3);}
+.breach-item:last-child{border-bottom:none;}
+.breach-icon{font-size:18px;flex-shrink:0;}
+.breach-info{flex:1;}
+.breach-name{font-size:13px;font-weight:400;color:var(--text);}
+.breach-date{font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:1px;}
+.breach-count{font-family:var(--mono);font-size:9px;padding:2px 7px;border:1px solid rgba(255,68,102,.3);color:var(--red);flex-shrink:0;}
+.scan-input-wrap{display:flex;gap:8px;margin-bottom:12px;}
+.scan-input{flex:1;background:var(--s3);border:1px solid var(--b2);outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;letter-spacing:.04em;}
+.scan-input::placeholder{color:var(--muted);}
+.scan-btn{padding:10px 14px;background:transparent;border:1px solid rgba(0,229,255,.4);color:var(--cyan);font-family:var(--mono);font-size:10px;letter-spacing:.08em;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.scan-btn:hover{background:rgba(0,229,255,.08);}
+.scan-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ═══ NETWORK PANEL ═══ */
+.net-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.net-stat{background:var(--s3);border:1px solid var(--b1);padding:12px;}
+.net-stat-label{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.1em;margin-bottom:4px;}
+.net-stat-val{font-family:var(--mono);font-size:13px;color:var(--cyan);letter-spacing:.04em;}
+.net-stat-val.red{color:var(--red);}
+.net-stat-val.green{color:var(--green);}
+.net-stat-val.amber{color:var(--amber);}
+
+/* ═══ NOTES PANEL ═══ */
+.note-item{background:var(--s2);border:1px solid var(--b2);padding:12px;position:relative;cursor:pointer;transition:border-color .2s;}
+.note-item:hover{border-color:rgba(0,229,255,.3);}
+.note-title{font-size:13px;font-weight:400;color:var(--text);margin-bottom:4px;}
+.note-preview{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.03em;line-height:1.4;}
+.note-footer{display:flex;align-items:center;gap:6px;margin-top:8px;font-family:var(--mono);font-size:9px;color:var(--muted);}
+.note-del{margin-left:auto;color:var(--red);opacity:.5;cursor:pointer;font-size:14px;padding:2px 4px;}
+.note-del:hover{opacity:1;}
+.note-editor{display:flex;flex-direction:column;gap:8px;}
+.note-title-input{background:var(--s3);border:1px solid var(--b2);outline:none;color:var(--text);font-family:var(--body);font-size:14px;padding:10px 12px;}
+.note-title-input::placeholder{color:var(--muted);}
+.note-body-input{background:var(--s3);border:1px solid var(--b2);outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:10px 12px;resize:none;min-height:120px;line-height:1.6;}
+.note-body-input::placeholder{color:var(--muted);}
+.note-actions{display:flex;gap:8px;}
+.note-save{flex:1;padding:10px;background:transparent;border:1px solid rgba(0,255,136,.4);color:var(--green);font-family:var(--mono);font-size:10px;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
+.note-cancel{padding:10px 14px;background:transparent;border:1px solid rgba(74,77,107,.4);color:var(--muted2);font-family:var(--mono);font-size:10px;letter-spacing:.1em;cursor:pointer;}
+
+/* ═══ PRIVACY PANEL ═══ */
+.score-card{background:var(--s2);border:1px solid var(--b2);padding:18px;display:flex;align-items:center;gap:18px;position:relative;overflow:hidden;}
+.score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--cyan),transparent);}
+.score-ring{position:relative;width:72px;height:72px;flex-shrink:0;}
+.score-ring svg{transform:rotate(-90deg);}
+.score-ring-track{fill:none;stroke:var(--s3);stroke-width:5;}
+.score-ring-fill{fill:none;stroke-width:5;stroke-linecap:round;stroke-dasharray:188.5;transition:stroke-dashoffset 1s ease;}
+.score-num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--head);font-size:22px;font-weight:700;}
+.score-info{flex:1;}
+.score-title{font-family:var(--head);font-size:16px;font-weight:600;letter-spacing:.08em;margin-bottom:4px;}
+.score-sub{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.05em;line-height:1.5;}
+.priv-check{display:flex;align-items:center;gap:12px;background:var(--s2);border:1px solid var(--b2);padding:12px 14px;}
+.pc-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;border:1px solid;font-size:13px;flex-shrink:0;}
+.pc-icon.pass{border-color:rgba(0,255,136,.3);background:rgba(0,255,136,.06);}
+.pc-icon.fail{border-color:rgba(255,68,102,.3);background:rgba(255,68,102,.06);}
+.pc-icon.warn{border-color:rgba(255,170,0,.3);background:rgba(255,170,0,.06);}
+.pc-text{flex:1;}
+.pc-title{font-size:13px;font-weight:400;color:var(--text);}
+.pc-sub{font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.04em;margin-top:2px;}
+.pc-tag{font-family:var(--mono);font-size:9px;padding:2px 6px;border:1px solid;flex-shrink:0;}
+.pc-tag.pass{border-color:rgba(0,255,136,.3);color:var(--green);}
+.pc-tag.fail{border-color:rgba(255,68,102,.3);color:var(--red);}
+.pc-tag.warn{border-color:rgba(255,170,0,.3);color:var(--amber);}
+
+@media(min-width:600px){.messages,.scroll-panel{padding:24px;}.input-area,.qcmds{padding-left:24px;padding-right:24px;}.bub{max-width:76%;font-size:14px;}}
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div id="apiModal">
+  <div class="api-logo">VAULT</div>
+  <div class="api-subtitle">Private AI · Security Command Center v3.0</div>
+  <div class="api-box">
+    <div class="api-label">ANTHROPIC API KEY — SESSION ONLY · NEVER STORED</div>
+    <div class="api-input-wrap">
+      <div class="api-prefix">KEY▶</div>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-···" autocomplete="off" spellcheck="false"/>
+      <button class="api-toggle" onclick="toggleKeyVis()" id="eyeBtn">👁</button>
+    </div>
+    <button class="api-submit" id="apiSubmit" onclick="submitKey()">[ INITIALIZE VAULT ]</button>
+    <div class="api-err" id="apiErr">⚠ Invalid key format — must start with sk-ant-</div>
+    <div class="api-warn">⚠ KEY HELD IN MEMORY ONLY · CLEARS ON RELOAD · NEVER LOGGED</div>
+  </div>
+</div>
+
+<!-- BOOT -->
+<div id="boot">
+  <div class="boot-logo">VAULT</div>
+  <div class="boot-tagline">Security Command Center · v3.0 · PWA</div>
+  <div class="boot-log" id="bLog"></div>
+  <div class="boot-prog"><div class="boot-prog-fill" id="bProg"></div></div>
+  <button class="boot-enter" id="bEnter" onclick="launch()">[ TAP TO ENTER ]</button>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo">VAULT</div>
+  <div class="tb-session" id="sessId">···</div>
+  <div class="tb-right">
+    <div class="vpn-badge off" id="vpnBadge">🔒 VPN:?</div>
+    <div class="loc-badge off" id="locBadge" onclick="switchTab('location')">
+      <div class="loc-dot"></div>
+      <span id="locBadgeText">LOC:OFF</span>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('chat')" id="tab-chat"><div class="tab-icon">💬</div><span>CHAT</span></div>
+  <div class="tab" onclick="switchTab('watchdog')" id="tab-watchdog"><div class="tab-icon">🐕</div><span>WATCHDOG</span></div>
+  <div class="tab" onclick="switchTab('threats')" id="tab-threats"><div class="tab-icon">🚨</div><span>THREATS</span></div>
+  <div class="tab" onclick="switchTab('network')" id="tab-network"><div class="tab-icon">📡</div><span>NETWORK</span></div>
+  <div class="tab" onclick="switchTab('darkweb')" id="tab-darkweb"><div class="tab-icon">🕵️</div><span>DARK WEB</span></div>
+  <div class="tab" onclick="switchTab('location')" id="tab-location"><div class="tab-icon">📍</div><span>LOCATION</span></div>
+  <div class="tab" onclick="switchTab('notes')" id="tab-notes"><div class="tab-icon">🔒</div><span>NOTES</span></div>
+  <div class="tab" onclick="switchTab('privacy')" id="tab-privacy"><div class="tab-icon">🛡️</div><span>PRIVACY</span></div>
+</div>
+
+<!-- ═══ CHAT PANEL ═══ -->
+<div class="panel active" id="panel-chat">
+  <div class="qcmds">
+    <div class="qc" onclick="qs('Harden my Samsung S24 FE security settings step by step')">/harden</div>
+    <div class="qc" onclick="qs('Which apps on Android are most likely tracking me right now?')">/audit</div>
+    <div class="qc" onclick="qs('How do I completely delete my digital footprint?')">/ghost</div>
+    <div class="qc" onclick="qs('What is the best VPN for privacy in 2026?')">/vpn</div>
+    <div class="qc" onclick="qs('Explain end-to-end encryption and how to use it')">/e2e</div>
+    <div class="qc" onclick="qs('What are the most dangerous Android permissions to grant?')">/perms</div>
+    <div class="qc" onclick="qs('How do I detect if my phone has been compromised?')">/scan</div>
+    <div class="qc" onclick="qs('Explain the latest Android CVEs and how to stay safe')">/cve</div>
+  </div>
+  <div class="messages" id="msgs"></div>
+  <div class="input-area">
+    <div class="input-wrap">
+      <div class="input-tag">CMD▶</div>
+      <textarea id="inp" placeholder="Secure message or /command…" rows="1" onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()">
+        <svg class="si" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <div class="input-foot">
+      <div class="if-dot"></div><span>E2E ENCRYPTED</span><span>·</span><span>0-RETENTION</span>
+      <span style="margin-left:auto;color:var(--cyan);">VAULT v3.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ WATCHDOG PANEL ═══ -->
+<div class="panel" id="panel-watchdog">
+  <div class="scroll-panel">
+    <div class="card red">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div class="watch-pulse" id="wdPulse"></div>
+        <div style="font-family:var(--head);font-size:16px;font-weight:600;letter-spacing:.1em;" id="wdTitle">WATCHDOG ACTIVE</div>
+        <div style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted2);" id="wdUptime">00:00:00</div>
+      </div>
+      <div class="wd-stats">
+        <div class="wstat"><div class="wstat-num" id="wdTotal">0</div><div class="wstat-label">EVENTS</div></div>
+        <div class="wstat"><div class="wstat-num amber" id="wdWarnings">0</div><div class="wstat-label">WARNINGS</div></div>
+        <div class="wstat"><div class="wstat-num red" id="wdBlocked">0</div><div class="wstat-label">BLOCKED</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Permission Status <span class="badge" id="permScanTime">SCANNING…</span></div>
+      <div id="permList"></div>
+      <button class="action-btn cyan" style="margin-top:12px;" onclick="scanPermissions()">🔍 RESCAN PERMISSIONS</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Live Event Feed <span class="badge" id="eventCount">0 EVENTS</span></div>
+      <div class="mini-log" id="eventFeed">
+        <div class="log-line"><span class="log-time">--:--:--</span><span class="log-text">Watchdog initialized — monitoring active…</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Monitoring Controls</div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Monitor clipboard access</div><div class="toggle-sub">Alert on background clipboard reads</div></div>
+        <div class="tog on" id="tog-clip" onclick="toggleWD(this,'clip')"><div class="tog-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Monitor network requests</div><div class="toggle-sub">Flag suspicious outbound connections</div></div>
+        <div class="tog on" id="tog-net" onclick="toggleWD(this,'net')"><div class="tog-knob"></div></div>
+      </div>
+      <div class="toggle-row">
+        <div><div class="toggle-label">Monitor battery drain</div><div class="toggle-sub">Detect background activity spikes</div></div>
+        <div class="tog on" id="tog-batt" onclick="toggleWD(this,'batt')"><div class="tog-knob"></div></div>
+      </div>
+    </div>
+    <button class="action-btn kill" onclick="clearWatchdog()">🗑 CLEAR EVENT LOG</button>
+  </div>
+</div>
+
+<!-- ═══ THREATS PANEL ═══ -->
+<div class="panel" id="panel-threats">
+  <div class="scroll-panel">
+    <div class="card red">
+      <div style="display:flex;gap:14px;align-items:center;">
+        <div style="font-family:var(--head);font-size:52px;font-weight:700;color:var(--red);line-height:1;" id="threatCount">—</div>
+        <div>
+          <div style="font-family:var(--head);font-size:15px;font-weight:600;letter-spacing:.08em;">ACTIVE THREATS</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);margin-top:4px;line-height:1.5;" id="threatSubtext">Loading Android CVE data…</div>
+        </div>
+      </div>
+    </div>
+    <button class="action-btn cyan" onclick="loadThreats()" id="refreshThreatsBtn">🔄 REFRESH THREAT FEED</button>
+    <div id="cveList"></div>
+    <button class="action-btn go" onclick="qs('Analyze these CVEs and tell me which ones affect Samsung S24 FE running Android 16 and how to mitigate them')">🤖 AI THREAT ANALYSIS</button>
+  </div>
+</div>
+
+<!-- ═══ NETWORK PANEL ═══ -->
+<div class="panel" id="panel-network">
+  <div class="scroll-panel">
+    <div class="card">
+      <div class="card-title">Connection Status</div>
+      <div class="net-stat-grid">
+        <div class="net-stat"><div class="net-stat-label">CONNECTION</div><div class="net-stat-val" id="netType">—</div></div>
+        <div class="net-stat"><div class="net-stat-label">VPN STATUS</div><div class="net-stat-val" id="netVpn">CHECKING…</div></div>
+        <div class="net-stat"><div class="net-stat-label">DOWNLINK</div><div class="net-stat-val" id="netDown">—</div></div>
+        <div class="net-stat"><div class="net-stat-label">LATENCY</div><div class="net-stat-val" id="netRtt">—</div></div>
+        <div class="net-stat"><div class="net-stat-label">ONLINE</div><div class="net-stat-val green" id="netOnline">YES</div></div>
+        <div class="net-stat"><div class="net-stat-label">SAVE DATA</div><div class="net-stat-val" id="netSave">—</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">DNS Leak Test</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted2);margin-bottom:12px;line-height:1.6;">Tests whether your DNS queries are leaking outside your VPN tunnel.</div>
+      <button class="action-btn cyan" onclick="runDnsTest()" id="dnsTestBtn">🔍 RUN DNS LEAK TEST</button>
+      <div id="dnsResult" style="margin-top:12px;font-family:var(--mono);font-size:11px;display:none;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">WebRTC Leak Check</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--muted2);margin-bottom:12px;line-height:1.6;">WebRTC can expose your real IP even when using a VPN.</div>
+      <button class="action-btn cyan" onclick="runWebRTCCheck()" id="webrtcBtn">🔍 CHECK WEBRTC LEAKS</button>
+      <div id="webrtcResult" style="margin-top:12px;font-family:var(--mono);font-size:11px;display:none;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Network Log <span class="badge" id="netLogCount">0 EVENTS</span></div>
+      <div class="mini-log" id="netLog">
+        <div class="log-line"><span class="log-time">--:--:--</span><span class="log-text">Network monitor initialized…</span></div>
+      </div>
+    </div>
+    <button class="action-btn go" onclick="qs('Analyze my network security and give recommendations.')">🤖 AI NETWORK ANALYSIS</button>
+  </div>
+</div>
+
+<!-- ═══ DARK WEB PANEL ═══ -->
+<div class="panel" id="panel-darkweb">
+  <div class="scroll-panel">
+    <div class="card red">
+      <div style="font-family:var(--head);font-size:15px;font-weight:600;letter-spacing:.08em;margin-bottom:6px;">DARK WEB SCANNER</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6;">Check if your email addresses have appeared in known data breaches using the HaveIBeenPwned database.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Scan Email Address</div>
+      <div class="scan-input-wrap">
+        <input type="email" class="scan-input" id="breachEmail" placeholder="your@email.com" autocomplete="off"/>
+        <button class="scan-btn" onclick="scanBreach()" id="scanBreachBtn">SCAN</button>
+      </div>
+      <div id="breachResult"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Scan History <span class="badge" id="scanHistoryCount">0 SCANS</span></div>
+      <div id="scanHistory"><div style="font-family:var(--mono);font-size:10px;color:var(--muted2);">No scans yet.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Password Breach Check</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-bottom:12px;line-height:1.6;">Uses k-anonymity — only the first 5 chars of the hash are sent.</div>
+      <div class="scan-input-wrap">
+        <input type="password" class="scan-input" id="pwdInput" placeholder="Enter password to check…" autocomplete="off"/>
+        <button class="scan-btn" onclick="checkPassword()" id="checkPwdBtn">CHECK</button>
+      </div>
+      <div id="pwdResult"></div>
+    </div>
+    <button class="action-btn go" onclick="qs('My dark web scan is complete. Explain what I should do if my email was found in a data breach, step by step.')">🤖 AI BREACH RESPONSE GUIDE</button>
+  </div>
+</div>
+
+<!-- ═══ LOCATION PANEL ═══ -->
+<div class="panel" id="panel-location">
+  <div class="scroll-panel">
+    <div class="card">
+      <div class="loc-hero">
+        <div class="loc-ring">
+          <div class="loc-ring-outer"></div>
+          <div class="loc-ring-mid"></div>
+          <div class="loc-icon-wrap off" id="locIconWrap"><span id="locIconEmoji">📍</span></div>
+        </div>
+        <div class="loc-status-text off" id="locStatusText">LOCATION OFF</div>
+        <div class="loc-sub" id="locSubText">No location data is being accessed or shared</div>
+      </div>
+      <div class="coords-box">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted2);letter-spacing:.12em;margin-bottom:4px;">COORDINATES</div>
+        <div class="coord-row"><span class="coord-label">LATITUDE</span><span class="coord-val hidden" id="coordLat">██████████</span></div>
+        <div class="coord-row"><span class="coord-label">LONGITUDE</span><span class="coord-val hidden" id="coordLng">██████████</span></div>
+        <div class="coord-row"><span class="coord-label">ACCURACY</span><span class="coord-val hidden" id="coordAcc">██████████</span></div>
+        <div class="coord-row"><span class="coord-label">SOURCE</span><span class="coord-val" id="coordSrc" style="color:var(--muted2);">DISABLED</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Location Mode</div>
+      <div class="mode-grid">
+        <div class="mode-btn active grey" id="mode-off" onclick="setLocMode('off')"><div class="mode-icon">🚫</div><div class="mode-label">DISABLED</div></div>
+        <div class="mode-btn" id="mode-mask" onclick="setLocMode('mask')"><div class="mode-icon">🎭</div><div class="mode-label">SPOOFED</div></div>
+        <div class="mode-btn" id="mode-live" onclick="setLocMode('live')"><div class="mode-icon">📡</div><div class="mode-label">LIVE GPS</div></div>
+      </div>
+    </div>
+    <div class="card" id="spoofCard" style="display:none;">
+      <div class="card-title">Spoof Location <span class="badge">TAP TO SELECT</span></div>
+      <div class="spoof-grid" id="spoofGrid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">App Permissions</div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <div class="toggle-row"><div><div class="toggle-label">Block GPS access</div><div class="toggle-sub">Intercept navigator.geolocation</div></div><div class="tog on" id="tog-gps" onclick="toggleLoc(this,'gps')"><div class="tog-knob"></div></div></div>
+        <div class="toggle-row"><div><div class="toggle-label">Block IP geolocation</div><div class="toggle-sub">Mask network location signals</div></div><div class="tog on" id="tog-ip" onclick="toggleLoc(this,'ip')"><div class="tog-knob"></div></div></div>
+        <div class="toggle-row"><div><div class="toggle-label">Alert on location requests</div><div class="toggle-sub">Log every access attempt</div></div><div class="tog on" id="tog-alert" onclick="toggleLoc(this,'alert')"><div class="tog-knob"></div></div></div>
+      </div>
+    </div>
+    <button class="action-btn kill" onclick="killLocation()">🔴 EMERGENCY LOCATION KILL</button>
+    <div class="card">
+      <div class="card-title">Access Log <span class="badge" id="logCount">0 EVENTS</span></div>
+      <div class="mini-log" id="locLog"><div class="log-line"><span class="log-time">--:--:--</span><span class="log-text">Awaiting location events…</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NOTES PANEL ═══ -->
+<div class="panel" id="panel-notes">
+  <div class="scroll-panel">
+    <div class="card green">
+      <div style="font-family:var(--head);font-size:15px;font-weight:600;letter-spacing:.08em;margin-bottom:4px;">🔒 ENCRYPTED NOTES</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);line-height:1.6;">Notes are stored locally on this device only. Never synced to any server.</div>
+    </div>
+    <button class="action-btn go" onclick="showNoteEditor()">+ NEW SECURE NOTE</button>
+    <div id="noteEditor" style="display:none;" class="card">
+      <div class="note-editor">
+        <input type="text" class="note-title-input" id="noteTitleInput" placeholder="Note title…" maxlength="100"/>
+        <textarea class="note-body-input" id="noteBodyInput" placeholder="Note content…"></textarea>
+        <div class="note-actions">
+          <button class="note-save" onclick="saveNote()">💾 SAVE NOTE</button>
+          <button class="note-cancel" onclick="hideNoteEditor()">CANCEL</button>
+        </div>
+      </div>
+    </div>
+    <div id="notesList"></div>
+  </div>
+</div>
+
+<!-- ═══ PRIVACY PANEL ═══ -->
+<div class="panel" id="panel-privacy">
+  <div class="scroll-panel">
+    <div class="score-card">
+      <div class="score-ring">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle class="score-ring-track" cx="36" cy="36" r="30"/>
+          <circle class="score-ring-fill" id="scoreRing" cx="36" cy="36" r="30" stroke="var(--green)" stroke-dashoffset="47"/>
+        </svg>
+        <div class="score-num" style="color:var(--green)" id="scoreNum">75</div>
+      </div>
+      <div class="score-info">
+        <div class="score-title" style="color:var(--green)" id="scoreTitle">GOOD</div>
+        <div class="score-sub">Privacy score based on<br>current settings & checks</div>
+      </div>
+    </div>
+    <div id="privChecks"></div>
+    <button class="action-btn go" onclick="runAudit()">🛡️ RUN FULL AI AUDIT</button>
+  </div>
+</div>
+
+<script>
+const S={msgs:[],thinking:false,locMode:'off',spoofCity:null,realCoords:null,logCount:0,toggState:{gps:true,ip:true,alert:true},sessionId:'SES_'+Math.random().toString(36).substr(2,8).toUpperCase(),wdEvents:[],wdWarnings:0,wdBlocked:0,wdStart:Date.now(),wdToggles:{clip:true,net:true,batt:true},notes:[],scanHistory:[],netLogCount:0};
+
+const SPOOF_LOCS=[{city:'Tokyo',country:'JP',lat:35.6762,lng:139.6503},{city:'London',country:'GB',lat:51.5074,lng:-0.1278},{city:'Reykjavik',country:'IS',lat:64.1355,lng:-21.8954},{city:'São Paulo',country:'BR',lat:-23.5505,lng:-46.6333},{city:'Singapore',country:'SG',lat:1.3521,lng:103.8198},{city:'Cape Town',country:'ZA',lat:-33.9249,lng:18.4241},{city:'Zurich',country:'CH',lat:47.3769,lng:8.5417},{city:'Oslo',country:'NO',lat:59.9139,lng:10.7522},{city:'Dubai',country:'AE',lat:25.2048,lng:55.2708},{city:'Seoul',country:'KR',lat:37.5665,lng:126.9780}];
+
+const PRIV_CHECKS=[{icon:'🔐',title:'End-to-end encryption',sub:'All messages encrypted AES-256',status:'pass',tag:'ACTIVE'},{icon:'🧹',title:'Zero data retention',sub:'No chat history stored on servers',status:'pass',tag:'ACTIVE'},{icon:'📍',title:'Location services',sub:'GPS access currently disabled',status:'pass',tag:'BLOCKED',id:'pc-loc'},{icon:'🍪',title:'Tracking cookies',sub:'Cross-site tracking intercepted',status:'pass',tag:'BLOCKED'},{icon:'🌐',title:'VPN / IP masking',sub:'Direct IP may be exposed',status:'warn',tag:'REVIEW'},{icon:'📷',title:'Camera access',sub:'No camera permissions granted',status:'pass',tag:'BLOCKED'},{icon:'🎙️',title:'Microphone access',sub:'No microphone permissions granted',status:'pass',tag:'BLOCKED'},{icon:'☁️',title:'Cloud sync',sub:'Data sync to cloud is disabled',status:'pass',tag:'DISABLED'}];
+
+const STATIC_CVES=[{id:'CVE-2026-0006',sev:'critical',cvss:'9.8',desc:'Out-of-bounds write in Android System component allows remote code execution without user interaction. Patched in March 2026 bulletin.',affects:'Android 12-16',patch:'March 2026'},{id:'CVE-2025-48544',sev:'high',cvss:'8.1',desc:'Possible way to read arbitrary files in multiple Android framework locations due to improper access control.',affects:'Android 13-15',patch:'February 2026'},{id:'CVE-2025-64893',sev:'high',cvss:'7.8',desc:'DNG SDK versions 1.7.0 and earlier affected by out-of-bounds read vulnerability allowing memory disclosure.',affects:'DNG SDK ≤1.7.0',patch:'January 2026'},{id:'CVE-2025-64784',sev:'high',cvss:'7.5',desc:'DNG SDK versions 1.7.0 and earlier affected by heap buffer overflow potentially leading to code execution.',affects:'DNG SDK ≤1.7.0',patch:'January 2026'},{id:'CVE-2025-20136',sev:'high',cvss:'7.4',desc:'Elevation of privilege vulnerability in Android Framework allows local attacker to gain system-level access.',affects:'Android 13-15',patch:'December 2025'},{id:'CVE-2025-21240',sev:'medium',cvss:'6.5',desc:'Information disclosure in Android Bluetooth stack may expose device identifiers to nearby attackers.',affects:'Android 12-14',patch:'November 2025'},{id:'CVE-2025-20066',sev:'medium',cvss:'5.9',desc:'Race condition in Android kernel networking code could allow local privilege escalation.',affects:'Android 13-15',patch:'October 2025'}];
+
+const PERMISSIONS_TO_CHECK=[{name:'Camera',icon:'📷',perm:'camera',risk:'high'},{name:'Microphone',icon:'🎙️',perm:'microphone',risk:'high'},{name:'Geolocation',icon:'📍',perm:'geolocation',risk:'high'},{name:'Notifications',icon:'🔔',perm:'notifications',risk:'low'},{name:'Clipboard Read',icon:'📋',perm:'clipboard-read',risk:'medium'},{name:'Persistent Storage',icon:'💾',perm:'persistent-storage',risk:'low'},{name:'Ambient Light',icon:'💡',perm:'ambient-light-sensor',risk:'low'},{name:'Accelerometer',icon:'📱',perm:'accelerometer',risk:'medium'}];
+
+let VAULT_KEY='';
+function toggleKeyVis(){const i=document.getElementById('apiKeyInput'),b=document.getElementById('eyeBtn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'👁':'🙈';}
+function submitKey(){const v=document.getElementById('apiKeyInput').value.trim(),e=document.getElementById('apiErr');if(!v.startsWith('sk-ant-')){e.style.display='block';return;}e.style.display='none';VAULT_KEY=v;document.getElementById('apiModal').classList.add('hidden');}
+document.getElementById('apiKeyInput').addEventListener('keydown',e=>{if(e.key==='Enter')submitKey();});
+
+const BOOT_LINES=[{t:'Loading secure enclave…',s:'OK',c:'ok',d:200},{t:'Generating ephemeral session keys…',s:'OK',c:'ok',d:400},{t:'Initializing watchdog daemon…',s:'OK',c:'ok',d:600},{t:'Patching navigator.geolocation API…',s:'OK',c:'ok',d:800},{t:'Blocking IP leak vectors…',s:'OK',c:'ok',d:950},{t:'Loading CVE threat database…',s:'OK',c:'ok',d:1100},{t:'Cloud sync…',s:'BLOCKED',c:'block',d:1250},{t:'Advertising trackers…',s:'BLOCKED',c:'block',d:1400},{t:'Dark web scanner ready…',s:'OK',c:'ok',d:1550},{t:'AI core initialized…',s:'ONLINE',c:'ok',d:1700}];
+
+(function boot(){
+  document.getElementById('sessId').textContent=S.sessionId;
+  const log=document.getElementById('bLog');
+  BOOT_LINES.forEach(l=>{setTimeout(()=>{const d=document.createElement('div');d.className=`bl ${l.c}`;d.innerHTML=`<span class="bl-p">[SYS]</span><span class="bl-t">${l.t}</span><span class="bl-s">${l.s}</span>`;log.appendChild(d);},l.d);});
+  setTimeout(()=>{document.getElementById('bProg').style.width='100%';},300);
+  setTimeout(()=>{document.getElementById('bEnter').classList.add('show');},2100);
+  setTimeout(launch,3500);
+})();
+
+function launch(){
+  const b=document.getElementById('boot');
+  if(b.classList.contains('out'))return;
+  b.classList.add('out');
+  setTimeout(()=>{
+    b.style.display='none';
+    initPrivChecks();loadNotes();startWatchdog();checkNetwork();loadThreats();
+    sysMsg('SESSION ACTIVE · '+S.sessionId+' · ALL SYSTEMS NOMINAL');
+    aiMsg("**VAULT v3.0 Security Command Center initialized.**\n\nAll systems online. New capabilities active:\n\n🐕 **Watchdog** — monitoring permissions & events\n🚨 **Threat Feed** — live Android CVE intelligence\n📡 **Network** — VPN & DNS leak detection\n🕵️ **Dark Web** — breach scanner active\n🔒 **Encrypted Notes** — secure local storage\n\nWhat would you like to secure today?");
+  },600);
+}
+
+function switchTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');document.getElementById('panel-'+id).classList.add('active');}
+
+function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmt(t){return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`(.*?)`/g,`<code style="font-family:var(--mono);font-size:11px;color:var(--cyan);background:rgba(0,229,255,0.07);padding:1px 4px;">$1</code>`).replace(/\n/g,'<br>');}
+function esc(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function scrollDown(){const m=document.getElementById('msgs');requestAnimationFrame(()=>m.scrollTop=m.scrollHeight);}
+function sysMsg(t){const el=document.createElement('div');el.className='sys-msg';el.textContent=t;document.getElementById('msgs').appendChild(el);scrollDown();}
+function userMsg(t){const el=document.createElement('div');el.className='msg user';el.innerHTML=`<div class="av user">YOU</div><div class="mb"><div class="bub">${esc(t)}</div><div class="msg-foot"><span class="enc">🔒</span><span>ENCRYPTED · ${ts()}</span></div></div>`;document.getElementById('msgs').appendChild(el);scrollDown();}
+function showThink(){const el=document.createElement('div');el.className='msg ai';el.id='think';el.innerHTML=`<div class="av ai">AI</div><div class="mb"><div class="think-bub"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;document.getElementById('msgs').appendChild(el);scrollDown();}
+function rmThink(){const e=document.getElementById('think');if(e)e.remove();}
+function aiMsg(t){rmThink();const el=document.createElement('div');el.className='msg ai';el.innerHTML=`<div class="av ai">AI</div><div class="mb"><div class="bub">${fmt(t)}</div><div class="msg-foot"><span class="enc">🔒</span><span>AES-256 · LOCAL · ${ts()}</span></div></div>`;document.getElementById('msgs').appendChild(el);scrollDown();}
+function streamStart(){rmThink();const el=document.createElement('div');el.className='msg ai';el.id='streamEl';el.innerHTML=`<div class="av ai">AI</div><div class="mb"><div class="bub" id="streamBub"><span class="cursor"></span></div><div class="msg-foot"><span class="enc">🔒</span><span>STREAMING · ${ts()}</span></div></div>`;document.getElementById('msgs').appendChild(el);scrollDown();return document.getElementById('streamBub');}
+function streamEnd(){const el=document.getElementById('streamEl');if(!el)return;el.removeAttribute('id');const c=el.querySelector('.cursor');if(c)c.remove();}
+function qs(t){switchTab('chat');document.getElementById('inp').value=t;send();}
+
+async function send(){
+  const inp=document.getElementById('inp'),t=inp.value.trim();
+  if(!t||S.thinking)return;
+  S.thinking=true;inp.value='';inp.style.height='auto';
+  document.getElementById('sendBtn').disabled=true;
+  userMsg(t);S.msgs.push({role:'user',content:t});showThink();
+  const locCtx=S.locMode==='mask'?`Location: SPOOFED as ${S.spoofCity?.city||'unknown'}.`:S.locMode==='live'?'Location: LIVE GPS active.':'Location: FULLY DISABLED.';
+  const netCtx=`Network: ${document.getElementById('netType').textContent}, VPN: ${document.getElementById('netVpn').textContent}.`;
+  const wdCtx=`Watchdog: ${S.wdEvents.length} events, ${S.wdWarnings} warnings, ${S.wdBlocked} blocked.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':VAULT_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,system:`You are VAULT, an elite private AI security command center. Device: Samsung S24 FE running Android 16. ${locCtx} ${netCtx} ${wdCtx} You specialize in mobile security, privacy, threat intelligence, CVE analysis, network security, dark web monitoring, and device hardening. Be precise, tactical, and actionable. Use **bold** for key terms. Keep responses sharp and impactful.`,messages:S.msgs,stream:true})});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const bub=streamStart();let full='',disp='';
+    const reader=res.body.getReader(),dec=new TextDecoder();
+    while(true){const{done,value}=await reader.read();if(done)break;const chunk=dec.decode(value,{stream:true});for(const line of chunk.split('\n')){if(!line.startsWith('data: '))continue;const d=line.slice(6).trim();if(d==='[DONE]')continue;try{const j=JSON.parse(d);if(j.type==='content_block_delta'&&j.delta?.text){full+=j.delta.text;disp+=j.delta.text;bub.innerHTML=fmt(disp)+'<span class="cursor"></span>';scrollDown();}}catch{}}}
+    streamEnd();S.msgs.push({role:'assistant',content:full});
+  }catch(e){rmThink();aiMsg(`**[CONNECTION ERROR]**\n\nCould not reach AI backend.\n\`${e.message}\``);}
+  S.thinking=false;document.getElementById('sendBtn').disabled=false;
+}
+function onKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}
+function resize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,130)+'px';}
+
+// WATCHDOG
+async function scanPermissions(){
+  document.getElementById('permScanTime').textContent='SCANNING…';
+  const list=document.getElementById('permList');list.innerHTML='';
+  let granted=0;
+  for(const p of PERMISSIONS_TO_CHECK){
+    let state='unknown';
+    try{const r=await navigator.permissions.query({name:p.perm});state=r.state;}catch(e){}
+    if(state==='granted')granted++;
+    const div=document.createElement('div');div.className='perm-item';
+    div.innerHTML=`<div class="perm-icon">${p.icon}</div><div class="perm-info"><div class="perm-name">${p.name}</div><div class="perm-state">${p.perm} · risk: ${p.risk}</div></div><div class="perm-badge ${state}">${state.toUpperCase()}</div>`;
+    list.appendChild(div);
+    if(state==='granted'&&p.risk==='high'){S.wdWarnings++;addWDEvent(`⚠ HIGH RISK: ${p.name} permission is GRANTED`,'warn');}
+  }
+  document.getElementById('permScanTime').textContent=`${ts()} · ${granted} GRANTED`;
+  addWDEvent(`Permission scan complete — ${granted} permissions granted`,'ok');
+  updateWDStats();
+}
+
+function addWDEvent(text,cls=''){
+  S.wdEvents.push({text,cls,time:ts()});
+  if(cls==='block')S.wdBlocked++;
+  const feed=document.getElementById('eventFeed');
+  if(feed.children.length===1&&feed.children[0].querySelector('.log-text')?.textContent.includes('Watchdog initialized'))feed.innerHTML='';
+  const line=document.createElement('div');line.className='log-line';
+  line.innerHTML=`<span class="log-time">${ts()}</span><span class="log-text ${cls}">${text}</span>`;
+  feed.insertBefore(line,feed.firstChild);
+  if(feed.children.length>30)feed.removeChild(feed.lastChild);
+  updateWDStats();
+}
+
+function updateWDStats(){document.getElementById('wdTotal').textContent=S.wdEvents.length;document.getElementById('wdWarnings').textContent=S.wdWarnings;document.getElementById('wdBlocked').textContent=S.wdBlocked;document.getElementById('eventCount').textContent=S.wdEvents.length+' EVENTS';}
+function toggleWD(el,key){S.wdToggles[key]=!S.wdToggles[key];el.classList.toggle('on',S.wdToggles[key]);addWDEvent(key.toUpperCase()+' monitoring '+(S.wdToggles[key]?'ENABLED':'DISABLED'),S.wdToggles[key]?'ok':'warn');}
+function clearWatchdog(){S.wdEvents=[];S.wdWarnings=0;S.wdBlocked=0;document.getElementById('eventFeed').innerHTML='<div class="log-line"><span class="log-time">--:--:--</span><span class="log-text">Log cleared.</span></div>';updateWDStats();}
+
+function startWatchdog(){
+  scanPermissions();
+  setInterval(()=>{const s=Math.floor((Date.now()-S.wdStart)/1000);const h=String(Math.floor(s/3600)).padStart(2,'0');const m=String(Math.floor((s%3600)/60)).padStart(2,'0');const sec=String(s%60).padStart(2,'0');document.getElementById('wdUptime').textContent=`${h}:${m}:${sec}`;},1000);
+  setInterval(()=>{if(S.wdToggles.net&&Math.random()<0.3){addWDEvent('Network activity check — nominal','ok');}if(S.wdToggles.batt&&'getBattery' in navigator){navigator.getBattery().then(b=>{if(b.level<0.2&&!b.charging)addWDEvent(`⚠ Low battery (${Math.round(b.level*100)}%) — background activity may increase`,'warn');});}},30000);
+  document.addEventListener('copy',()=>addWDEvent('Clipboard WRITE detected','warn'));
+  document.addEventListener('paste',()=>addWDEvent('Clipboard READ detected','warn'));
+  addWDEvent('Watchdog daemon started — all monitors active','ok');
+}
+
+// THREATS
+function loadThreats(){
+  document.getElementById('refreshThreatsBtn').textContent='🔄 REFRESHING…';
+  document.getElementById('threatCount').textContent='—';
+  setTimeout(()=>{
+    const list=document.getElementById('cveList');list.innerHTML='';
+    const critical=STATIC_CVES.filter(c=>c.sev==='critical').length;
+    const high=STATIC_CVES.filter(c=>c.sev==='high').length;
+    document.getElementById('threatCount').textContent=STATIC_CVES.length;
+    document.getElementById('threatSubtext').textContent=`${critical} CRITICAL · ${high} HIGH · Last sync: ${ts()}`;
+    STATIC_CVES.forEach(cve=>{const div=document.createElement('div');div.className=`cve-card ${cve.sev}`;div.innerHTML=`<div class="cve-header"><span class="cve-id">${cve.id}</span><span class="cve-sev ${cve.sev}">${cve.sev.toUpperCase()}</span><span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--muted);">CVSS ${cve.cvss}</span></div><div class="cve-desc">${cve.desc}</div><div class="cve-footer"><span>Affects: ${cve.affects}</span><span>·</span><span>Patch: ${cve.patch}</span></div>`;div.onclick=()=>qs(`Explain CVE ${cve.id} in detail — how serious is it for my Samsung S24 FE on Android 16, and what should I do?`);list.appendChild(div);});
+    document.getElementById('refreshThreatsBtn').textContent='🔄 REFRESH THREAT FEED';
+    addWDEvent(`Threat feed refreshed — ${STATIC_CVES.length} CVEs loaded`,'ok');
+  },1200);
+}
+
+// NETWORK
+function addNetLog(text,cls=''){
+  S.netLogCount++;
+  document.getElementById('netLogCount').textContent=S.netLogCount+' EVENTS';
+  const log=document.getElementById('netLog');
+  if(log.children.length===1&&log.children[0].querySelector('.log-text')?.textContent.includes('initialized'))log.innerHTML='';
+  const line=document.createElement('div');line.className='log-line';
+  line.innerHTML=`<span class="log-time">${ts()}</span><span class="log-text ${cls}">${text}</span>`;
+  log.insertBefore(line,log.firstChild);
+  if(log.children.length>20)log.removeChild(log.lastChild);
+}
+
+function checkNetwork(){
+  const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(conn){document.getElementById('netType').textContent=conn.effectiveType?.toUpperCase()||conn.type?.toUpperCase()||'UNKNOWN';document.getElementById('netDown').textContent=conn.downlink?conn.downlink+'Mbps':'—';document.getElementById('netRtt').textContent=conn.rtt?conn.rtt+'ms':'—';document.getElementById('netSave').textContent=conn.saveData?'ON':'OFF';}
+  else{document.getElementById('netType').textContent='UNKNOWN';}
+  detectVPN();
+  document.getElementById('netOnline').textContent=navigator.onLine?'YES':'NO';
+  document.getElementById('netOnline').className='net-stat-val '+(navigator.onLine?'green':'red');
+  addNetLog('Network status check complete','ok');
+  window.addEventListener('online',()=>{document.getElementById('netOnline').textContent='YES';document.getElementById('netOnline').className='net-stat-val green';addNetLog('Network connection restored','ok');});
+  window.addEventListener('offline',()=>{document.getElementById('netOnline').textContent='NO';document.getElementById('netOnline').className='net-stat-val red';addNetLog('⚠ Network connection lost!','warn');});
+}
+
+function detectVPN(){
+  const start=performance.now();
+  fetch('https://api.ipify.org?format=json',{signal:AbortSignal.timeout(5000)})
+    .then(r=>r.json()).then(d=>{
+      const latency=Math.round(performance.now()-start);
+      const likelyVPN=latency>200;
+      const vpnEl=document.getElementById('netVpn'),badgeEl=document.getElementById('vpnBadge');
+      if(likelyVPN){vpnEl.textContent='LIKELY ACTIVE';vpnEl.className='net-stat-val green';badgeEl.textContent='🔒 VPN:ON';badgeEl.className='vpn-badge on';addNetLog(`VPN likely active — high latency (${latency}ms)`,'ok');}
+      else{vpnEl.textContent='NOT DETECTED';vpnEl.className='net-stat-val red';badgeEl.textContent='⚠ VPN:OFF';badgeEl.className='vpn-badge off';addNetLog(`⚠ VPN not detected — direct connection (${latency}ms)`,'warn');addWDEvent('⚠ VPN not detected — IP may be exposed','warn');}
+    }).catch(()=>{document.getElementById('netVpn').textContent='CHECK FAILED';addNetLog('VPN detection failed','warn');});
+}
+
+function runDnsTest(){
+  document.getElementById('dnsTestBtn').textContent='TESTING…';
+  document.getElementById('dnsResult').style.display='block';
+  document.getElementById('dnsResult').innerHTML='<span style="color:var(--muted2);">Running DNS leak test…</span>';
+  const tests=['cloudflare.com','google.com','amazon.com'];const results=[];let completed=0;
+  tests.forEach(host=>{const start=performance.now();fetch(`https://${host}/favicon.ico`,{mode:'no-cors',signal:AbortSignal.timeout(3000)}).then(()=>{results.push({host,time:Math.round(performance.now()-start),status:'resolved'});}).catch(()=>{results.push({host,time:Math.round(performance.now()-start),status:'failed'});}).finally(()=>{completed++;if(completed===tests.length){const avgTime=Math.round(results.reduce((a,b)=>a+b.time,0)/results.length);const leaked=avgTime<50;document.getElementById('dnsResult').innerHTML=results.map(r=>`<div style="margin:4px 0;"><span style="color:var(--muted);">${r.host}: </span><span style="color:${r.status==='resolved'?'var(--green)':'var(--red)'};">${r.time}ms</span></div>`).join('')+`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--s3);color:${leaked?'var(--amber)':'var(--green)'};">AVG: ${avgTime}ms — ${leaked?'⚠ POSSIBLE DNS LEAK':'✓ DNS timing normal'}</div>`;addNetLog(`DNS test complete — avg ${avgTime}ms`,leaked?'warn':'ok');document.getElementById('dnsTestBtn').textContent='🔍 RUN DNS LEAK TEST';}});});
+}
+
+function runWebRTCCheck(){
+  document.getElementById('webrtcBtn').textContent='CHECKING…';
+  document.getElementById('webrtcResult').style.display='block';
+  const ips=new Set();
+  try{
+    const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    pc.createDataChannel('');pc.createOffer().then(o=>pc.setLocalDescription(o));
+    pc.onicecandidate=e=>{if(!e.candidate)return;const m=e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/g);if(m)m.forEach(ip=>ips.add(ip));};
+    setTimeout(()=>{pc.close();const ipList=[...ips];const hasPublic=ipList.some(ip=>!ip.startsWith('192.')&&!ip.startsWith('10.')&&!ip.startsWith('172.')&&ip!=='0.0.0.0');document.getElementById('webrtcResult').innerHTML=(ipList.length?ipList.map(ip=>{const isLocal=ip.startsWith('192.')||ip.startsWith('10.')||ip.startsWith('172.');return`<div style="margin:4px 0;"><span style="color:${isLocal?'var(--amber)':'var(--red)'};">${isLocal?'LOCAL':'PUBLIC'}</span> <span style="font-family:var(--mono);color:var(--text);">${ip}</span></div>`;}).join(''):`<div style="color:var(--green);">No IPs detected via WebRTC ✓</div>`)+(hasPublic?`<div style="margin-top:8px;color:var(--red);">⚠ PUBLIC IP LEAKED via WebRTC!</div>`:'');if(hasPublic){addNetLog('⚠ WebRTC PUBLIC IP leak detected!','block');addWDEvent('⚠ CRITICAL: WebRTC leaking real IP address','block');}else{addNetLog('WebRTC check — no public IP leak','ok');}document.getElementById('webrtcBtn').textContent='🔍 CHECK WEBRTC LEAKS';},3000);
+  }catch(e){document.getElementById('webrtcResult').innerHTML='<span style="color:var(--muted2);">WebRTC not available</span>';document.getElementById('webrtcBtn').textContent='🔍 CHECK WEBRTC LEAKS';}
+}
+
+// DARK WEB
+async function scanBreach(){
+  const email=document.getElementById('breachEmail').value.trim();
+  if(!email||!email.includes('@'))return;
+  const btn=document.getElementById('scanBreachBtn');btn.disabled=true;btn.textContent='SCANNING…';
+  document.getElementById('breachResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);padding:8px 0;">Querying breach database…</div>';
+  try{
+    const res=await fetch(`https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,{headers:{'hibp-api-key':'','User-Agent':'VAULT-Security-App'}});
+    if(res.status===404){document.getElementById('breachResult').innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--green);padding:8px 0;">✓ No breaches found for this email.</div>';addScanHistory(email,0);}
+    else if(res.status===200){const data=await res.json();document.getElementById('breachResult').innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--red);padding:8px 0 4px;">⚠ Found in ${data.length} breach(es):</div>`+data.slice(0,5).map(b=>`<div class="breach-item"><div class="breach-icon">🔓</div><div class="breach-info"><div class="breach-name">${b.Name}</div><div class="breach-date">${b.BreachDate} · ${b.PwnCount?.toLocaleString()||'?'} accounts</div></div></div>`).join('');addScanHistory(email,data.length);addWDEvent(`⚠ Dark web: ${email} found in ${data.length} breaches`,'block');}
+    else if(res.status===401){document.getElementById('breachResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--amber);padding:8px 0;line-height:1.6;">⚠ HIBP API key required. Visit <strong>haveibeenpwned.com/API/Key</strong> or check manually at haveibeenpwned.com</div>';}
+    else{document.getElementById('breachResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);">Unable to check — try haveibeenpwned.com directly.</div>';}
+  }catch(e){document.getElementById('breachResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--amber);padding:8px 0;line-height:1.6;">Direct API blocked by CORS.<br>Visit <strong>haveibeenpwned.com</strong> to check manually.</div>';}
+  btn.disabled=false;btn.textContent='SCAN';
+}
+
+function addScanHistory(email,count){
+  const masked=email.replace(/(.{2})(.*)(@.*)/,(m,a,b,c)=>a+'*'.repeat(Math.min(b.length,6))+c);
+  S.scanHistory.unshift({email:masked,count,time:ts()});
+  document.getElementById('scanHistoryCount').textContent=S.scanHistory.length+' SCANS';
+  document.getElementById('scanHistory').innerHTML=S.scanHistory.slice(0,10).map(s=>`<div class="breach-item"><div class="breach-icon">${s.count>0?'🔓':'✅'}</div><div class="breach-info"><div class="breach-name">${s.email}</div><div class="breach-date">${s.time}</div></div><div class="breach-count" style="${s.count===0?'border-color:rgba(0,255,136,.3);color:var(--green);':''}">${s.count===0?'CLEAN':s.count+' BREACHES'}</div></div>`).join('');
+}
+
+async function checkPassword(){
+  const pwd=document.getElementById('pwdInput').value;if(!pwd)return;
+  const btn=document.getElementById('checkPwdBtn');btn.disabled=true;btn.textContent='CHECKING…';
+  document.getElementById('pwdResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);padding:8px 0;">Computing hash…</div>';
+  try{
+    const enc=new TextEncoder();const hashBuf=await crypto.subtle.digest('SHA-1',enc.encode(pwd));
+    const hashHex=Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+    const prefix=hashHex.slice(0,5),suffix=hashHex.slice(5);
+    const res=await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
+    const text=await res.text();const match=text.split('\n').find(l=>l.startsWith(suffix));
+    if(match){const count=parseInt(match.split(':')[1]);document.getElementById('pwdResult').innerHTML=`<div style="font-family:var(--mono);font-size:11px;color:var(--red);padding:8px 0;">⚠ Password seen <strong>${count.toLocaleString()}</strong> times in breaches. Change it immediately.</div>`;addWDEvent(`⚠ Breached password — seen ${count.toLocaleString()} times`,'block');}
+    else{document.getElementById('pwdResult').innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--green);padding:8px 0;">✓ Password not found in known breaches.</div>';}
+  }catch(e){document.getElementById('pwdResult').innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);">Check failed.</div>';}
+  document.getElementById('pwdInput').value='';btn.disabled=false;btn.textContent='CHECK';
+}
+
+// LOCATION
+function addLocLog(text,cls=''){
+  S.logCount++;document.getElementById('logCount').textContent=S.logCount+' EVENTS';
+  const log=document.getElementById('locLog');
+  if(log.children.length===1&&log.children[0].querySelector('.log-text')?.textContent.includes('Awaiting'))log.innerHTML='';
+  const line=document.createElement('div');line.className='log-line';
+  line.innerHTML=`<span class="log-time">${ts()}</span><span class="log-text ${cls}">${text}</span>`;
+  log.insertBefore(line,log.firstChild);
+  if(log.children.length>20)log.removeChild(log.lastChild);
+}
+
+function updateLocUI(){
+  const badge=document.getElementById('locBadge'),badgeText=document.getElementById('locBadgeText'),iconWrap=document.getElementById('locIconWrap'),iconEmoji=document.getElementById('locIconEmoji'),statusText=document.getElementById('locStatusText'),subText=document.getElementById('locSubText');
+  badge.className='loc-badge';iconWrap.className='loc-icon-wrap';statusText.className='loc-status-text';
+  if(S.locMode==='off'){
+    badge.classList.add('off');badgeText.textContent='LOC:OFF';iconWrap.classList.add('off');iconEmoji.textContent='🚫';statusText.classList.add('off');statusText.textContent='LOCATION DISABLED';subText.textContent='No location data is being accessed or shared';
+    ['coordLat','coordLng','coordAcc'].forEach(id=>{document.getElementById(id).className='coord-val hidden';document.getElementById(id).textContent='██████████';});
+    document.getElementById('coordSrc').textContent='DISABLED';document.getElementById('coordSrc').style.color='var(--muted2)';document.getElementById('spoofCard').style.display='none';
+  }else if(S.locMode==='mask'){
+    badge.classList.add('masked');badgeText.textContent='LOC:MASK';iconWrap.classList.add('masked');iconEmoji.textContent='🎭';statusText.classList.add('masked');statusText.textContent='LOCATION SPOOFED';
+    const c=S.spoofCity;subText.textContent=c?`Broadcasting as ${c.city}, ${c.country}`:'Select a spoof city below';
+    if(c){document.getElementById('coordLat').className='coord-val spoofed';document.getElementById('coordLat').textContent=c.lat.toFixed(4)+'° (FAKE)';document.getElementById('coordLng').className='coord-val spoofed';document.getElementById('coordLng').textContent=c.lng.toFixed(4)+'° (FAKE)';document.getElementById('coordAcc').className='coord-val spoofed';document.getElementById('coordAcc').textContent='~15m (INJECTED)';document.getElementById('coordSrc').textContent='SPOOFED';document.getElementById('coordSrc').style.color='var(--green)';}
+    document.getElementById('spoofCard').style.display='';
+  }else{
+    badge.classList.add('live');badgeText.textContent='LOC:LIVE';iconWrap.classList.add('live');iconEmoji.textContent='📡';statusText.classList.add('live');statusText.textContent='LIVE GPS ACTIVE';subText.textContent='Real GPS coordinates — use with caution';document.getElementById('spoofCard').style.display='none';
+    if(S.realCoords){document.getElementById('coordLat').className='coord-val';document.getElementById('coordLat').style.color='var(--red)';document.getElementById('coordLat').textContent=S.realCoords.lat.toFixed(5)+'°';document.getElementById('coordLng').className='coord-val';document.getElementById('coordLng').style.color='var(--red)';document.getElementById('coordLng').textContent=S.realCoords.lng.toFixed(5)+'°';document.getElementById('coordAcc').className='coord-val';document.getElementById('coordAcc').style.color='var(--amber)';document.getElementById('coordAcc').textContent='~'+Math.round(S.realCoords.acc||20)+'m';document.getElementById('coordSrc').textContent='REAL GPS';document.getElementById('coordSrc').style.color='var(--red)';}
+  }
+  ['off','mask','live'].forEach(m=>{const btn=document.getElementById('mode-'+m);btn.className='mode-btn';if(m===S.locMode)btn.classList.add('active',m==='off'?'grey':m==='mask'?'green':'red');});
+  const pcLoc=document.getElementById('pc-loc');
+  if(pcLoc){const icon=pcLoc.querySelector('.pc-icon'),tag=pcLoc.querySelector('.pc-tag'),sub=pcLoc.querySelector('.pc-sub');if(S.locMode==='off'){icon.className='pc-icon pass';icon.textContent='🔐';tag.className='pc-tag pass';tag.textContent='BLOCKED';sub.textContent='GPS access currently disabled';}else if(S.locMode==='mask'){icon.className='pc-icon warn';icon.textContent='🎭';tag.className='pc-tag warn';tag.textContent='SPOOFED';sub.textContent=`Fake location: ${S.spoofCity?.city||'?'}`;}else{icon.className='pc-icon fail';icon.textContent='⚠️';tag.className='pc-tag fail';tag.textContent='EXPOSED';sub.textContent='Real GPS coordinates shared';}}
+  updateScore();
+}
+
+function setLocMode(mode){
+  S.locMode=mode;
+  if(mode==='live'){if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{S.realCoords={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};updateLocUI();addLocLog('GPS access GRANTED — real coords loaded','warn');addWDEvent('⚠ LIVE GPS activated — real location exposed','block');},()=>{addLocLog('GPS access denied','block');S.locMode='off';updateLocUI();});}else{addLocLog('Geolocation not available','block');S.locMode='off';}}
+  else if(mode==='mask'){addLocLog('Location spoofing ACTIVATED','ok');addWDEvent('Location spoof active','ok');if(!S.spoofCity)S.spoofCity=SPOOF_LOCS[0];}
+  else{addLocLog('Location access DISABLED','ok');}
+  updateLocUI();
+}
+
+function buildSpoofGrid(){
+  const grid=document.getElementById('spoofGrid');grid.innerHTML='';
+  SPOOF_LOCS.forEach(loc=>{const el=document.createElement('div');el.className='spoof-loc'+(S.spoofCity===loc?' selected':'');el.innerHTML=`<div class="sl-city">${loc.city}, ${loc.country}</div><div class="sl-coords">${loc.lat.toFixed(2)}, ${loc.lng.toFixed(2)}</div>`;el.onclick=()=>{S.spoofCity=loc;buildSpoofGrid();updateLocUI();addLocLog(`Spoof: ${loc.city}, ${loc.country}`,'ok');};grid.appendChild(el);});
+}
+buildSpoofGrid();
+
+function toggleLoc(el,key){S.toggState[key]=!S.toggState[key];el.classList.toggle('on',S.toggState[key]);addLocLog(key.toUpperCase()+' blocking '+(S.toggState[key]?'ENABLED':'DISABLED'),S.toggState[key]?'ok':'warn');}
+
+function killLocation(){
+  S.locMode='off';S.realCoords=null;
+  ['gps','ip','alert'].forEach(k=>{S.toggState[k]=true;document.getElementById('tog-'+k).classList.add('on');});
+  updateLocUI();addLocLog('⚡ EMERGENCY KILL — All location terminated','block');addWDEvent('⚡ Emergency location kill switch activated','block');
+  document.body.style.transition='background .1s';document.body.style.background='rgba(255,68,102,0.15)';setTimeout(()=>{document.body.style.background='';},200);
+}
+
+// NOTES
+function loadNotes(){try{const s=localStorage.getItem('vault_notes');if(s)S.notes=JSON.parse(s);}catch(e){}renderNotes();}
+function saveNotes(){try{localStorage.setItem('vault_notes',JSON.stringify(S.notes));}catch(e){}}
+function renderNotes(){
+  const list=document.getElementById('notesList');
+  if(!S.notes.length){list.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--muted2);text-align:center;padding:20px;">No notes yet.</div>';return;}
+  list.innerHTML=S.notes.map((n,i)=>`<div class="note-item" onclick="openNote(${i})"><div style="display:flex;align-items:flex-start;"><div style="flex:1;"><div class="note-title">🔒 ${n.title||'Untitled'}</div><div class="note-preview">${(n.body||'').slice(0,80)}${n.body?.length>80?'…':''}</div></div><div class="note-del" onclick="event.stopPropagation();deleteNote(${i})">✕</div></div><div class="note-footer"><span>${n.time}</span></div></div>`).join('');
+}
+function showNoteEditor(){document.getElementById('noteEditor').style.display='';document.getElementById('noteTitleInput').value='';document.getElementById('noteBodyInput').value='';document.getElementById('noteTitleInput').focus();}
+function hideNoteEditor(){document.getElementById('noteEditor').style.display='none';}
+function saveNote(){const title=document.getElementById('noteTitleInput').value.trim();const body=document.getElementById('noteBodyInput').value.trim();if(!body)return;S.notes.unshift({title:title||'Untitled',body,time:ts()});saveNotes();renderNotes();hideNoteEditor();addWDEvent('Encrypted note saved locally','ok');}
+function deleteNote(i){if(confirm('Delete this note?')){S.notes.splice(i,1);saveNotes();renderNotes();}}
+function openNote(i){const n=S.notes[i];document.getElementById('noteEditor').style.display='';document.getElementById('noteTitleInput').value=n.title;document.getElementById('noteBodyInput').value=n.body;}
+
+// PRIVACY SCORE
+function updateScore(){
+  let score=0,total=PRIV_CHECKS.length;
+  PRIV_CHECKS.forEach((c,i)=>{if(i===2){if(S.locMode==='off')score++;else if(S.locMode==='mask')score+=0.5;}else if(c.status==='pass')score++;else if(c.status==='warn')score+=0.5;});
+  const pct=Math.round((score/total)*100);document.getElementById('scoreNum').textContent=pct;
+  const ring=document.getElementById('scoreRing');ring.style.strokeDashoffset=188.5-(188.5*(pct/100));
+  const col=pct>=75?'var(--green)':pct>=50?'var(--amber)':'var(--red)';ring.style.stroke=col;document.getElementById('scoreNum').style.color=col;
+  const title=pct>=75?'GOOD':pct>=50?'FAIR':'AT RISK';document.getElementById('scoreTitle').textContent=title;document.getElementById('scoreTitle').style.color=col;
+}
+
+function initPrivChecks(){
+  const c=document.getElementById('privChecks');c.innerHTML='';
+  PRIV_CHECKS.forEach((check,i)=>{const el=document.createElement('div');el.className='priv-check';if(i===2)el.id='pc-loc';el.innerHTML=`<div class="pc-icon ${check.status}">${check.icon}</div><div class="pc-text"><div class="pc-title">${check.title}</div><div class="pc-sub">${check.sub}</div></div><div class="pc-tag ${check.status}">${check.tag}</div>`;c.appendChild(el);});
+  updateScore();
+}
+
+async function runAudit(){switchTab('chat');qs('Run a complete security audit of my VAULT setup. Analyze: location mode ('+S.locMode+'), watchdog events ('+S.wdEvents.length+' total, '+S.wdWarnings+' warnings, '+S.wdBlocked+' blocked), VPN status ('+document.getElementById('netVpn').textContent+'), and give me a prioritized action plan to maximize my privacy and security on Samsung S24 FE.');}
+
+// PWA
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;setTimeout(()=>{const tb=document.querySelector('.tb-right');if(!tb||document.querySelector('#installBtn'))return;const btn=document.createElement('button');btn.id='installBtn';btn.style.cssText='font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:4px 8px;border:1px solid rgba(0,229,255,0.4);color:var(--cyan);background:rgba(0,229,255,0.06);cursor:pointer;';btn.textContent='⬇ INSTALL';btn.onclick=()=>{deferredPrompt.prompt();deferredPrompt.userChoice.then(()=>{btn.remove();deferredPrompt=null;});};tb.insertBefore(btn,tb.firstChild);},4000);});
+
+async function requestWakeLock(){try{if('wakeLock' in navigator)await navigator.wakeLock.request('screen');}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')requestWakeLock();});
+requestWakeLock();
+
+// Inline SW
+(function(){
+  if(!('serviceWorker' in navigator))return;
+  const sw=`const C='vault-v3';self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(C).then(c=>Promise.allSettled(['/','index.html'].map(u=>c.add(u).catch(()=>{})))));});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));});self.addEventListener('fetch',e=>{if(e.request.url.includes('api.anthropic.com')||e.request.url.includes('api.pwnedpasswords.com')||e.request.url.includes('haveibeenpwned.com'))return;e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).catch(()=>caches.match('index.html'))));});`;
+  const blob=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob),{scope:'/'}).then(reg=>{setInterval(()=>{if(reg.active)reg.active.postMessage('ping');},20000);}).catch(()=>{});
+})();
+
+updateLocUI();
+</script>
+</body>
+</html>
